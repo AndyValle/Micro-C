@@ -7,6 +7,7 @@
 #include "Lexer.h"
 #include "Parser.h"
 #include "Semantico.h"
+#include "GeneradorIR.h"
 #include "ASTPrinter.h"
 
 using namespace std;
@@ -18,6 +19,7 @@ using namespace std;
 //   (sin opciones)  analiza el archivo y muestra el AST
 //   --tokens        muestra tambien la tabla de tokens
 //   --simbolos      muestra tambien la tabla de simbolos
+//   --cuadruplas    muestra el codigo intermedio (cuadruplas)
 //
 // El compilador se detiene en el primer error.
 // ==================================================
@@ -112,6 +114,7 @@ int main(int argc, char* argv[])
     string ruta;
     bool mostrarTokens = false;
     bool mostrarSimbolos = false;
+    bool mostrarCuadruplas = false;
 
     for (int i = 1; i < argc; i++)
     {
@@ -125,6 +128,10 @@ int main(int argc, char* argv[])
         {
             mostrarSimbolos = true;
         }
+        else if (arg == "--cuadruplas")
+        {
+            mostrarCuadruplas = true;
+        }
         else
         {
             ruta = arg;
@@ -133,7 +140,7 @@ int main(int argc, char* argv[])
 
     if (ruta.empty())
     {
-        cerr << "Uso: ./microc archivo.c [--tokens] [--simbolos]" << endl;
+        cerr << "Uso: ./microc archivo.c [--tokens] [--simbolos] [--cuadruplas]" << endl;
         return 1;
     }
 
@@ -167,6 +174,10 @@ int main(int argc, char* argv[])
         Semantico semantico(*programa);
         semantico.analizar();
 
+        // 4. Codigo intermedio
+        GeneradorIR generador(*programa);
+        ProgramaIR ir = generador.generar();
+
         // Todo correcto: se muestran los resultados
 
         cout << "==========================================================" << endl;
@@ -186,9 +197,18 @@ int main(int argc, char* argv[])
         cout << "Analisis semantico exitoso: no se encontraron errores." << endl;
         cout << endl;
 
+        cout << "Codigo intermedio generado: " << ir.totalCuadruplas()
+             << " cuadruplas en " << ir.funciones.size() << " funcion(es)." << endl;
+        cout << endl;
+
         if (mostrarSimbolos)
         {
             imprimirSimbolos(semantico.registro());
+        }
+
+        if (mostrarCuadruplas)
+        {
+            imprimirCodigoIntermedio(ir);
         }
     }
     catch (const ErrorCompilador& e)
